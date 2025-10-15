@@ -5,36 +5,63 @@ import com.BombTagNet.Backend.dao.Player;
 import com.BombTagNet.Backend.dao.Room;
 import org.springframework.stereotype.Service;
 
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
 public class RoomService {
     private final Map<String, Room> rooms = new ConcurrentHashMap<>();
-    private final AtomicInteger seq = new AtomicInteger(1);
 
     public Room create(String hostId, String name, int maxPlayers, String password, String hostAddress) {
-        String id = "r_" + seq.getAndIncrement();
-        Room r = new Room(id, hostId, name == null ? "Room" : name, Math.max(2, Math.min(4, maxPlayers)), password);
+        String roomId = normalizeRoomKey(name);
+        String canonicalKey = toCanonicalKey(roomId);
+        Room r = new Room(roomId, hostId, roomId, Math.max(2, Math.min(4, maxPlayers)), password);
         r.updateHostEndpoint(hostAddress, 0);
-        rooms.put(id, r);
+        Room existing = rooms.putIfAbsent(canonicalKey, r);
+        if (existing != null) {
+            throw new IllegalStateException("ROOM_ALREADY_EXISTS");
+        }
         return r;
     }
 
-    public Optional<Room> find(String roomId) {
-        if (roomId == null) {
+    private String normalizeRoomKey(String name) {
+        if (name == null) {
+            throw new IllegalStateException("ROOM_NAME_REQUIRED");
+        }
+
+        String normalized = name.trim();
+        if (normalized.isEmpty()) {
+            throw new IllegalStateException("ROOM_NAME_REQUIRED");
+        }
+
+        return normalized;
+    }
+
+    private String toCanonicalKey(String roomId) {
+        return roomId.trim().toLowerCase(Locale.ROOT);
+    }
+
+    public Optional<Room> find(String roomIdOrName) {
+        if (roomIdOrName == null) {
             return Optional.empty();
         }
 
-        String normalized = roomId.trim();
+        String normalized = roomIdOrName.trim();
         if (normalized.isEmpty()) {
             return Optional.empty();
         }
 
-        return Optional.ofNullable(rooms.get(normalized));
+        Room byId = rooms.get(toCanonicalKey(normalized));
+        if (byId != null) {
+            return Optional.of(byId);
+        }
+
+        return rooms.values().stream()
+                .filter(r -> r.roomId().equalsIgnoreCase(normalized) || r.name().equalsIgnoreCase(normalized))
+                .findFirst();
     }
 
     public Room join(Room r, Player p, String password) {
@@ -63,13 +90,13 @@ public class RoomService {
 
         if (wasHost) {
             r.clearPlayers();
-            rooms.remove(r.roomId(), r);
+            rooms.remove(toCanonicalKey(r.roomId()), r);
             r.setStatus(RoomStatus.WAITING);
             return;
         }
 
         if (r.size() == 0) {
-            rooms.remove(r.roomId(), r);
+            rooms.remove(toCanonicalKey(r.roomId()), r);
             r.setStatus(RoomStatus.WAITING);
             return;
         }
