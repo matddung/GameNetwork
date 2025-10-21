@@ -61,8 +61,7 @@ public class RoomController {
         Room room = requireRoom(roomId);
         rooms.start(room, PlayerRequestUtils.requirePlayerId(request), MIN_PLAYERS);
         if (request != null) {
-            String hostAddress = RequestIpUtils.resolveRemoteAddress(request);
-            room.updateHostEndpoint(hostAddress, room.hostPort());
+            rooms.updateHostEndpoint(room, RequestIpUtils.resolveRemoteAddress(request), null);
         }
         return ResponseEntity.ok().body(java.util.Map.of(
                 "matchId", "m_" + System.currentTimeMillis(),
