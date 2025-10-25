@@ -11,7 +11,7 @@ public class RoomDto {
 
     public record RoomSummary(String roomId, String name, String hostId, RoomStatus status, Integer minPlayers,
                               Integer maxPlayers, Integer currentPlayers, List<Player> players,
-                              String hostAddress, Integer hostPort) {
+                              String hostAddress, String hostInternalAddress, Integer hostPort) {
     }
 
     public record JoinRoomReq(String password) {
@@ -21,6 +21,7 @@ public class RoomDto {
     }
 
     public record RoomDetail(String roomId, String name, RoomStatus status, Integer minPlayers, Integer maxPlayers,
-                             Integer currentPlayers, List<Player> players, String hostId, String hostAddress, Integer hostPort) {
+                             Integer currentPlayers, List<Player> players, String hostId,
+                             String hostAddress, String hostInternalAddress, Integer hostPort) {
     }
 }

@@ -22,7 +22,7 @@ public class MatchService {
         CANCELLED
     }
 
-    public record MatchInfo(String matchId, List<Player> players, String hostPlayerId, String hostAddress, int hostPort) {
+    public record MatchInfo(String matchId, List<Player> players, String hostPlayerId, String hostAddress, String hostInternalAddress, int hostPort) {
     }
 
     public record MatchQueueStatus(
@@ -37,7 +37,8 @@ public class MatchService {
             List<Player> players,
             String hostPlayerId,
             String hostAddress,
-            Integer hostPort
+            Integer hostPort,
+            String hostInternalAddress
     ) {
     }
 
@@ -73,7 +74,11 @@ public class MatchService {
                 }
             }
 
-            MatchTicket ticket = new MatchTicket("t_" + ticketSeq.getAndIncrement(), new Player(playerId, nickname), hostProperties.resolveAddress(address));
+            String publicAddress = hostProperties.resolvePublicAddress(address);
+            String internalAddress = hostProperties.resolveInternalAddress(address);
+            MatchTicket ticket = new MatchTicket("t_" + ticketSeq.getAndIncrement(), new Player(playerId, nickname),
+                    publicAddress, internalAddress);
+
             ticketsById.put(ticket.ticketId, ticket);
             ticketsByPlayer.put(playerId, ticket);
 
@@ -214,11 +219,13 @@ public class MatchService {
         List<Player> players = match.players();
         MatchTicket hostTicket = match.tickets.isEmpty() ? null : match.tickets.get(0);
         String hostPlayerId = hostTicket == null ? null : hostTicket.player.playerId();
-        String hostAddress = hostTicket == null ? null : hostTicket.address;
-        hostAddress = hostProperties.resolveAddress(hostAddress);
+        String hostAddress = hostTicket == null ? null : hostTicket.publicAddress;
+        String hostInternalAddress = hostTicket == null ? null : hostTicket.internalAddress;
+        hostAddress = hostProperties.resolvePublicAddress(hostAddress);
+        hostInternalAddress = hostProperties.resolveInternalAddress(hostInternalAddress);
         int hostPort = hostProperties.getPort();
 
-        MatchInfo info = new MatchInfo(match.matchId, players, hostPlayerId, hostAddress, hostPort);
+        MatchInfo info = new MatchInfo(match.matchId, players, hostPlayerId, hostAddress, hostInternalAddress, hostPort);
 
         for (MatchTicket ticket : match.tickets) {
             ticket.pendingMatch = null;
@@ -241,6 +248,7 @@ public class MatchService {
         List<Player> players = List.of();
         String hostPlayerId = null;
         String hostAddress = null;
+        String hostInternalAddress = null;
         Integer hostPort = null;
 
         if (ticket.status == TicketStatus.QUEUED) {
@@ -262,7 +270,8 @@ public class MatchService {
             }
         }
 
-        hostAddress = hostProperties.resolveAddress(hostAddress);
+        hostAddress = hostProperties.resolvePublicAddress(hostAddress);
+        hostInternalAddress = hostProperties.resolveInternalAddress(hostInternalAddress);
         int resolvedPort = hostProperties.resolvePort(hostPort);
         hostPort = resolvedPort;
 
@@ -278,7 +287,8 @@ public class MatchService {
                 List.copyOf(players),
                 hostPlayerId,
                 hostAddress,
-                hostPort
+                hostPort,
+                hostInternalAddress
         );
     }
 
@@ -314,12 +324,14 @@ public class MatchService {
         private TicketStatus status = TicketStatus.QUEUED;
         private PendingMatch pendingMatch;
         private MatchInfo matchInfo;
-        private final String address;
+        private final String publicAddress;
+        private final String internalAddress;
 
-        private MatchTicket(String ticketId, Player player, String address) {
+        private MatchTicket(String ticketId, Player player, String publicAddress, String internalAddress) {
             this.ticketId = ticketId;
             this.player = player;
-            this.address = (address == null || address.isBlank()) ? null : address;
+            this.publicAddress = (publicAddress == null || publicAddress.isBlank()) ? null : publicAddress;
+            this.internalAddress = (internalAddress == null || internalAddress.isBlank()) ? null : internalAddress;
         }
     }
 

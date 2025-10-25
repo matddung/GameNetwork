@@ -69,7 +69,8 @@ public class RoomController {
                 "seed", 123456,
                 "hostPlayerId", room.hostId(),
                 "hostAddress", room.hostAddress(),
-                "hostPort", room.hostPort()
+                "hostPort", room.hostPort(),
+                "hostInternalAddress", room.hostInternalAddress()
         ));
     }
 
@@ -84,12 +85,12 @@ public class RoomController {
     private RoomSummary toSummary(Room room) {
         List<Player> players = snapshotPlayers(room);
         return new RoomSummary(room.roomId(), room.name(), room.hostId(), room.status(), MIN_PLAYERS, room.maxPlayers(),
-                room.size(), players, room.hostAddress(), room.hostPort());
+                room.size(), players, room.hostAddress(), room.hostInternalAddress(), room.hostPort());
     }
 
     private RoomDetail toDetail(Room room) {
         List<Player> players = snapshotPlayers(room);
         return new RoomDetail(room.roomId(), room.name(), room.status(), MIN_PLAYERS, room.maxPlayers(), room.size(),
-                players, room.hostId(), room.hostAddress(), room.hostPort());
+                players, room.hostId(), room.hostAddress(), room.hostInternalAddress(), room.hostPort());
     }
 }

@@ -14,5 +14,6 @@ spring:
 
 game:
   host:
-    address: 34.64.149.81
+    public-address: 34.64.149.81
+    internal-address: 10.178.0.2
     port: 7777
