@@ -48,27 +48,25 @@ public class GameHostProperties {
 
     public HostEndpoint resolveEndpoint(String candidate) {
         String trimmed = trimToNull(candidate);
+
         String publicAddress = trimToNull(address);
         if (publicAddress == null) {
-            publicAddress = trimmed;
+            publicAddress = trimToNull(internalAddress);
         }
-        if (trimmed != null && trimmed.equalsIgnoreCase(publicAddress)) {
+        if (publicAddress == null) {
             publicAddress = trimmed;
         }
 
         String resolvedInternal = trimToNull(internalAddress);
         if (resolvedInternal == null) {
-            if (trimmed != null && !trimmed.equalsIgnoreCase(publicAddress)) {
-                resolvedInternal = trimmed;
-            } else {
-                resolvedInternal = publicAddress;
-            }
-        } else if (trimmed != null && !trimmed.equalsIgnoreCase(publicAddress)) {
             resolvedInternal = trimmed;
         }
-
         if (resolvedInternal == null) {
             resolvedInternal = publicAddress;
+        }
+
+        if (publicAddress == null) {
+            publicAddress = resolvedInternal;
         }
 
         return new HostEndpoint(publicAddress, resolvedInternal);
