@@ -10,7 +10,7 @@ public class GameHostProperties {
 
     private String internalAddress = "10.178.0.2";
 
-    private boolean preferInternal = true;
+    private boolean preferInternal = false;
 
     private int port = 7777;
 
@@ -74,7 +74,7 @@ public class GameHostProperties {
 
     public String resolveAddress(String candidate) {
         HostEndpoint endpoint = resolveEndpoint(candidate);
-        return preferInternal ? endpoint.internalAddress() : endpoint.publicAddress();
+        return shouldUseInternalFor(null) ? endpoint.internalAddress() : endpoint.publicAddress();
     }
 
     public int resolvePort(Integer candidate) {
@@ -82,6 +82,36 @@ public class GameHostProperties {
             return candidate;
         }
         return port;
+    }
+
+    public boolean shouldUseInternalFor(String requesterAddress) {
+        if (!preferInternal) {
+            return false;
+        }
+
+        String trimmed = trimToNull(requesterAddress);
+        if (trimmed == null) {
+            return true;
+        }
+
+        return isInternalNetwork(trimmed);
+    }
+
+    public AddressSelection selectForClient(String publicAddress, String internalAddress, String requesterAddress) {
+        String normalizedPublic = trimToNull(publicAddress);
+        String normalizedInternal = trimToNull(internalAddress);
+
+        if (normalizedPublic == null && normalizedInternal != null) {
+            normalizedPublic = normalizedInternal;
+        }
+        if (normalizedInternal == null && normalizedPublic != null) {
+            normalizedInternal = normalizedPublic;
+        }
+
+        boolean useInternal = shouldUseInternalFor(requesterAddress) && normalizedInternal != null;
+        String preferred = useInternal ? normalizedInternal : normalizedPublic;
+
+        return new AddressSelection(normalizedPublic, normalizedInternal, preferred);
     }
 
     private static String trimToNull(String value) {
@@ -92,9 +122,24 @@ public class GameHostProperties {
         return trimmed.isEmpty() ? null : trimmed;
     }
 
+    private boolean isInternalNetwork(String address) {
+        try {
+            java.net.InetAddress inetAddress = java.net.InetAddress.getByName(address);
+            return inetAddress.isSiteLocalAddress()
+                    || inetAddress.isLoopbackAddress()
+                    || inetAddress.isAnyLocalAddress()
+                    || inetAddress.isLinkLocalAddress();
+        } catch (java.net.UnknownHostException ex) {
+            return false;
+        }
+    }
+
     public record HostEndpoint(String publicAddress, String internalAddress) {
         public String preferred(boolean preferInternal) {
             return preferInternal ? internalAddress : publicAddress;
         }
+    }
+
+    public record AddressSelection(String publicAddress, String internalAddress, String preferredAddress) {
     }
 }

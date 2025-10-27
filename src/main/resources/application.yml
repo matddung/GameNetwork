@@ -16,5 +16,5 @@ game:
   host:
     address: 34.64.149.81
     internalAddress: 10.178.0.2
-    preferInternal: true
+    preferInternal: false
     port: 7777

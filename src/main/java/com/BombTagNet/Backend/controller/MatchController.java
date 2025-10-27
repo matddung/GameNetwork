@@ -2,6 +2,7 @@ package com.BombTagNet.Backend.controller;
 
 import com.BombTagNet.Backend.common.PlayerRequestUtils;
 import com.BombTagNet.Backend.common.RequestIpUtils;
+import com.BombTagNet.Backend.config.GameHostProperties;
 import com.BombTagNet.Backend.dto.MatchDto.MatchQueueStatusRes;
 import com.BombTagNet.Backend.dto.MatchDto.MatchResultReq;
 import com.BombTagNet.Backend.dto.MatchDto.OkRes;
@@ -15,12 +16,16 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/matches")
 public class MatchController {
     private final MatchService match;
+    private final GameHostProperties hostProperties;
 
-    public MatchController(MatchService match) {
+    public MatchController(MatchService match, GameHostProperties hostProperties) {
         this.match = match;
+        this.hostProperties = hostProperties;
     }
 
-    private MatchQueueStatusRes toResponse(MatchQueueStatus status) {
+    private MatchQueueStatusRes toResponse(MatchQueueStatus status, String requesterAddress) {
+        GameHostProperties.AddressSelection selection = hostProperties.selectForClient(
+                status.hostAddress(), status.hostInternalAddress(), requesterAddress);
         return new MatchQueueStatusRes(
                 status.ticketId(),
                 status.status().name(),
@@ -32,8 +37,8 @@ public class MatchController {
                 status.matchId(),
                 status.players(),
                 status.hostPlayerId(),
-                status.hostAddress(),
-                status.hostInternalAddress(),
+                selection.preferredAddress(),
+                selection.internalAddress(),
                 status.hostPort()
         );
     }
@@ -41,22 +46,25 @@ public class MatchController {
     @PostMapping("/queue")
     public ResponseEntity<MatchQueueStatusRes> enqueue(HttpServletRequest request) {
         String playerId = PlayerRequestUtils.requirePlayerId(request);
-        MatchQueueStatus status = match.enqueue(playerId, PlayerRequestUtils.resolveNickname(request), RequestIpUtils.resolveRemoteAddress(request));
-        return ResponseEntity.ok(toResponse(status));
+        String requesterAddress = RequestIpUtils.resolveRemoteAddress(request);
+        MatchQueueStatus status = match.enqueue(playerId, PlayerRequestUtils.resolveNickname(request), requesterAddress);
+        return ResponseEntity.ok(toResponse(status, requesterAddress));
     }
 
     @GetMapping("/queue/{ticketId}")
     public ResponseEntity<MatchQueueStatusRes> status(HttpServletRequest request, @PathVariable String ticketId) {
+        String requesterAddress = RequestIpUtils.resolveRemoteAddress(request);
         return match.status(PlayerRequestUtils.requirePlayerId(request), ticketId)
-                .map(this::toResponse)
+                .map(status -> toResponse(status, requesterAddress))
                 .map(ResponseEntity::ok)
                 .orElseThrow(() -> new IllegalStateException("TICKET_NOT_FOUND"));
     }
 
     @PostMapping("/queue/{ticketId}/cancel")
     public ResponseEntity<MatchQueueStatusRes> cancel(HttpServletRequest request, @PathVariable String ticketId) {
+        String requesterAddress = RequestIpUtils.resolveRemoteAddress(request);
         return match.cancel(PlayerRequestUtils.requirePlayerId(request), ticketId)
-                .map(this::toResponse)
+                .map(status -> toResponse(status, requesterAddress))
                 .map(ResponseEntity::ok)
                 .orElseThrow(() -> new IllegalStateException("TICKET_NOT_FOUND"));
     }
