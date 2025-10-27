@@ -33,8 +33,8 @@ public class MatchController {
                 status.players(),
                 status.hostPlayerId(),
                 status.hostAddress(),
-                status.hostPort(),
-                status.hostInternalAddress()
+                status.hostInternalAddress(),
+                status.hostPort()
         );
     }
 

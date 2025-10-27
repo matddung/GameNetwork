@@ -6,18 +6,20 @@ import org.springframework.stereotype.Component;
 @Component
 @ConfigurationProperties(prefix = "game.host")
 public class GameHostProperties {
-    private String publicAddress = "34.64.149.81";
+    private String address = "34.64.149.81";
 
     private String internalAddress = "10.178.0.2";
 
+    private boolean preferInternal = true;
+
     private int port = 7777;
 
-    public String getPublicAddress() {
-        return publicAddress;
+    public String getAddress() {
+        return address;
     }
 
-    public void setPublicAddress(String publicAddress) {
-        this.publicAddress = publicAddress;
+    public void setAddress(String address) {
+        this.address = address;
     }
 
     public String getInternalAddress() {
@@ -28,6 +30,14 @@ public class GameHostProperties {
         this.internalAddress = internalAddress;
     }
 
+    public boolean isPreferInternal() {
+        return preferInternal;
+    }
+
+    public void setPreferInternal(boolean preferInternal) {
+        this.preferInternal = preferInternal;
+    }
+
     public int getPort() {
         return port;
     }
@@ -36,50 +46,37 @@ public class GameHostProperties {
         this.port = port;
     }
 
-    public String resolvePublicAddress(String candidate) {
-        String normalizedPublic = trim(publicAddress);
-        String normalizedInternal = trim(internalAddress);
-        String normalizedCandidate = trim(candidate);
-
-        if (normalizedCandidate != null) {
-            if (normalizedPublic != null && normalizedCandidate.equals(normalizedPublic)) {
-                return normalizedPublic;
-            }
-            if (normalizedInternal != null && normalizedCandidate.equals(normalizedInternal)) {
-                return normalizedPublic != null ? normalizedPublic : normalizedCandidate;
-            }
+    public HostEndpoint resolveEndpoint(String candidate) {
+        String trimmed = trimToNull(candidate);
+        String publicAddress = trimToNull(address);
+        if (publicAddress == null) {
+            publicAddress = trimmed;
+        }
+        if (trimmed != null && trimmed.equalsIgnoreCase(publicAddress)) {
+            publicAddress = trimmed;
         }
 
-        if (normalizedPublic != null) {
-            return normalizedPublic;
-        }
-
-        return normalizedCandidate;
-    }
-
-    public String resolveInternalAddress(String candidate) {
-        String normalizedPublic = trim(publicAddress);
-        String normalizedInternal = trim(internalAddress);
-        String normalizedCandidate = trim(candidate);
-
-        if (normalizedCandidate != null) {
-            if (normalizedInternal != null && normalizedCandidate.equals(normalizedInternal)) {
-                return normalizedInternal;
+        String resolvedInternal = trimToNull(internalAddress);
+        if (resolvedInternal == null) {
+            if (trimmed != null && !trimmed.equalsIgnoreCase(publicAddress)) {
+                resolvedInternal = trimmed;
+            } else {
+                resolvedInternal = publicAddress;
             }
-            if (normalizedPublic != null && normalizedCandidate.equals(normalizedPublic)) {
-                return normalizedInternal != null ? normalizedInternal : normalizedCandidate;
-            }
+        } else if (trimmed != null && !trimmed.equalsIgnoreCase(publicAddress)) {
+            resolvedInternal = trimmed;
         }
 
-        if (normalizedInternal != null) {
-            return normalizedInternal;
+        if (resolvedInternal == null) {
+            resolvedInternal = publicAddress;
         }
 
-        return normalizedCandidate != null ? normalizedCandidate : normalizedPublic;
+        return new HostEndpoint(publicAddress, resolvedInternal);
     }
 
     public String resolveAddress(String candidate) {
-        return resolvePublicAddress(candidate);
+        HostEndpoint endpoint = resolveEndpoint(candidate);
+        return preferInternal ? endpoint.internalAddress() : endpoint.publicAddress();
     }
 
     public int resolvePort(Integer candidate) {
@@ -89,11 +86,17 @@ public class GameHostProperties {
         return port;
     }
 
-    private String trim(String value) {
+    private static String trimToNull(String value) {
         if (value == null) {
             return null;
         }
         String trimmed = value.trim();
         return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    public record HostEndpoint(String publicAddress, String internalAddress) {
+        public String preferred(boolean preferInternal) {
+            return preferInternal ? internalAddress : publicAddress;
+        }
     }
 }

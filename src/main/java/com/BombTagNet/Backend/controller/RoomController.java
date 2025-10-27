@@ -69,8 +69,8 @@ public class RoomController {
                 "seed", 123456,
                 "hostPlayerId", room.hostId(),
                 "hostAddress", room.hostAddress(),
-                "hostPort", room.hostPort(),
-                "hostInternalAddress", room.hostInternalAddress()
+                "hostInternalAddress", room.hostInternalAddress(),
+                "hostPort", room.hostPort()
         ));
     }
 

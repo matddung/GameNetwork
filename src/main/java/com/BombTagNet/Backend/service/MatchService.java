@@ -37,8 +37,8 @@ public class MatchService {
             List<Player> players,
             String hostPlayerId,
             String hostAddress,
-            Integer hostPort,
-            String hostInternalAddress
+            String hostInternalAddress,
+            Integer hostPort
     ) {
     }
 
@@ -73,12 +73,10 @@ public class MatchService {
                     return statusFor(existing, now);
                 }
             }
+            GameHostProperties.HostEndpoint endpoint = hostProperties.resolveEndpoint(address);
 
-            String publicAddress = hostProperties.resolvePublicAddress(address);
-            String internalAddress = hostProperties.resolveInternalAddress(address);
             MatchTicket ticket = new MatchTicket("t_" + ticketSeq.getAndIncrement(), new Player(playerId, nickname),
-                    publicAddress, internalAddress);
-
+                    endpoint.publicAddress(), endpoint.internalAddress());
             ticketsById.put(ticket.ticketId, ticket);
             ticketsByPlayer.put(playerId, ticket);
 
@@ -219,10 +217,11 @@ public class MatchService {
         List<Player> players = match.players();
         MatchTicket hostTicket = match.tickets.isEmpty() ? null : match.tickets.get(0);
         String hostPlayerId = hostTicket == null ? null : hostTicket.player.playerId();
-        String hostAddress = hostTicket == null ? null : hostTicket.publicAddress;
-        String hostInternalAddress = hostTicket == null ? null : hostTicket.internalAddress;
-        hostAddress = hostProperties.resolvePublicAddress(hostAddress);
-        hostInternalAddress = hostProperties.resolveInternalAddress(hostInternalAddress);
+        GameHostProperties.HostEndpoint endpoint = hostTicket == null
+                ? hostProperties.resolveEndpoint(null)
+                : hostTicket.endpoint(hostProperties);
+        String hostAddress = endpoint.publicAddress();
+        String hostInternalAddress = endpoint.internalAddress();
         int hostPort = hostProperties.getPort();
 
         MatchInfo info = new MatchInfo(match.matchId, players, hostPlayerId, hostAddress, hostInternalAddress, hostPort);
@@ -266,12 +265,19 @@ public class MatchService {
                 players = ticket.matchInfo.players();
                 hostPlayerId = ticket.matchInfo.hostPlayerId();
                 hostAddress = ticket.matchInfo.hostAddress();
+                hostInternalAddress = ticket.matchInfo.hostInternalAddress();
                 hostPort = ticket.matchInfo.hostPort();
             }
         }
 
-        hostAddress = hostProperties.resolvePublicAddress(hostAddress);
-        hostInternalAddress = hostProperties.resolveInternalAddress(hostInternalAddress);
+        GameHostProperties.HostEndpoint endpoint = hostProperties.resolveEndpoint(
+                hostInternalAddress != null ? hostInternalAddress : hostAddress);
+        if (hostAddress == null || hostAddress.isBlank()) {
+            hostAddress = endpoint.publicAddress();
+        }
+        if (hostInternalAddress == null || hostInternalAddress.isBlank()) {
+            hostInternalAddress = endpoint.internalAddress();
+        }
         int resolvedPort = hostProperties.resolvePort(hostPort);
         hostPort = resolvedPort;
 
@@ -287,8 +293,8 @@ public class MatchService {
                 List.copyOf(players),
                 hostPlayerId,
                 hostAddress,
-                hostPort,
-                hostInternalAddress
+                hostInternalAddress,
+                hostPort
         );
     }
 
@@ -330,8 +336,21 @@ public class MatchService {
         private MatchTicket(String ticketId, Player player, String publicAddress, String internalAddress) {
             this.ticketId = ticketId;
             this.player = player;
-            this.publicAddress = (publicAddress == null || publicAddress.isBlank()) ? null : publicAddress;
-            this.internalAddress = (internalAddress == null || internalAddress.isBlank()) ? null : internalAddress;
+            this.publicAddress = normalize(publicAddress);
+            this.internalAddress = normalize(internalAddress);
+        }
+
+        private GameHostProperties.HostEndpoint endpoint(GameHostProperties properties) {
+            String candidate = internalAddress != null ? internalAddress : publicAddress;
+            return properties.resolveEndpoint(candidate);
+        }
+
+        private static String normalize(String value) {
+            if (value == null) {
+                return null;
+            }
+            String trimmed = value.trim();
+            return trimmed.isEmpty() ? null : trimmed;
         }
     }
 

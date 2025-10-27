@@ -21,7 +21,7 @@ public class RoomDto {
     }
 
     public record RoomDetail(String roomId, String name, RoomStatus status, Integer minPlayers, Integer maxPlayers,
-                             Integer currentPlayers, List<Player> players, String hostId,
-                             String hostAddress, String hostInternalAddress, Integer hostPort) {
+                             Integer currentPlayers, List<Player> players, String hostId, String hostAddress,
+                             String hostInternalAddress, Integer hostPort) {
     }
 }

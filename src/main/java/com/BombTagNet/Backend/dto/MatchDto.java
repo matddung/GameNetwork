@@ -26,8 +26,8 @@ public class MatchDto {
             List<Player> players,
             String hostPlayerId,
             String hostAddress,
-            Integer hostPort,
-            String hostInternalAddress
+            String hostInternalAddress,
+            Integer hostPort
     ) {
     }
 }

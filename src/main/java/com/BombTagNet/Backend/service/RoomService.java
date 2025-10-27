@@ -27,7 +27,8 @@ public class RoomService {
         String roomId = normalizeRoomKey(name);
         String canonicalKey = toCanonicalKey(roomId);
         Room r = new Room(roomId, hostId, roomId, Math.max(2, Math.min(4, maxPlayers)), password);
-        r.updateHostEndpoint(hostProperties.resolvePublicAddress(hostAddress), hostProperties.resolveInternalAddress(hostAddress), hostProperties.getPort());
+        GameHostProperties.HostEndpoint endpoint = hostProperties.resolveEndpoint(hostAddress);
+        r.updateHostEndpoint(endpoint.publicAddress(), endpoint.internalAddress(), hostProperties.getPort());
         Room existing = rooms.putIfAbsent(canonicalKey, r);
         if (existing != null) {
             throw new IllegalStateException("ROOM_ALREADY_EXISTS");
@@ -39,10 +40,9 @@ public class RoomService {
         if (room == null) {
             return;
         }
-        String resolvedPublicAddress = hostProperties.resolvePublicAddress(address);
-        String resolvedInternalAddress = hostProperties.resolveInternalAddress(address);
+        GameHostProperties.HostEndpoint endpoint = hostProperties.resolveEndpoint(address);
         int resolvedPort = hostProperties.resolvePort(port);
-        room.updateHostEndpoint(resolvedPublicAddress, resolvedInternalAddress, resolvedPort);
+        room.updateHostEndpoint(endpoint.publicAddress(), endpoint.internalAddress(), resolvedPort);
     }
 
     private String normalizeRoomKey(String name) {
