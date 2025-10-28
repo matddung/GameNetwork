@@ -75,9 +75,7 @@ public class MatchService {
                 }
             }
 
-            String publicAddress = hostProperties.resolvePublicAddress(address);
-            String internalAddress = hostProperties.resolveInternalAddress(address);
-            MatchTicket ticket = new MatchTicket("t_" + ticketSeq.getAndIncrement(), new Player(playerId, nickname), publicAddress, internalAddress);
+            MatchTicket ticket = new MatchTicket("t_" + ticketSeq.getAndIncrement(), new Player(playerId, nickname), hostProperties.resolveAddress(address));
             ticketsById.put(ticket.ticketId, ticket);
             ticketsByPlayer.put(playerId, ticket);
 
@@ -218,10 +216,9 @@ public class MatchService {
         List<Player> players = match.players();
         MatchTicket hostTicket = match.tickets.isEmpty() ? null : match.tickets.get(0);
         String hostPlayerId = hostTicket == null ? null : hostTicket.player.playerId();
-        String hostAddress = hostTicket == null ? null : hostTicket.publicAddress;
-        String hostInternalAddress = hostTicket == null ? null : hostTicket.internalAddress;
-        hostAddress = hostProperties.resolvePublicAddress(hostAddress);
-        hostInternalAddress = hostProperties.resolveInternalAddress(hostInternalAddress);
+        String hostAddress = hostTicket == null ? null : hostTicket.address;
+        hostAddress = hostProperties.resolveAddress(hostAddress);
+        String hostInternalAddress = hostProperties.resolveInternalAddress(null);
         int hostPort = hostProperties.getPort();
 
         MatchInfo info = new MatchInfo(match.matchId, players, hostPlayerId, hostAddress, hostInternalAddress, hostPort);
@@ -265,17 +262,12 @@ public class MatchService {
                 players = ticket.matchInfo.players();
                 hostPlayerId = ticket.matchInfo.hostPlayerId();
                 hostAddress = ticket.matchInfo.hostAddress();
-                hostInternalAddress = ticket.matchInfo.hostInternalAddress();
                 hostPort = ticket.matchInfo.hostPort();
             }
         }
 
-        if (hostAddress != null) {
-            hostAddress = hostProperties.resolvePublicAddress(hostAddress);
-        }
-        if (hostInternalAddress != null) {
-            hostInternalAddress = hostProperties.resolveInternalAddress(hostInternalAddress);
-        }
+        hostAddress = hostProperties.resolveAddress(hostAddress);
+        hostInternalAddress = hostProperties.resolveInternalAddress(hostInternalAddress);
         int resolvedPort = hostProperties.resolvePort(hostPort);
         hostPort = resolvedPort;
 
@@ -328,14 +320,12 @@ public class MatchService {
         private TicketStatus status = TicketStatus.QUEUED;
         private PendingMatch pendingMatch;
         private MatchInfo matchInfo;
-        private final String publicAddress;
-        private final String internalAddress;
+        private final String address;
 
-        private MatchTicket(String ticketId, Player player, String publicAddress, String internalAddress) {
+        private MatchTicket(String ticketId, Player player, String address) {
             this.ticketId = ticketId;
             this.player = player;
-            this.publicAddress = (publicAddress == null || publicAddress.isBlank()) ? null : publicAddress;
-            this.internalAddress = (internalAddress == null || internalAddress.isBlank()) ? null : internalAddress;
+            this.address = (address == null || address.isBlank()) ? null : address;
         }
     }
 

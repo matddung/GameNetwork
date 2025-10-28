@@ -6,26 +6,17 @@ import org.springframework.stereotype.Component;
 @Component
 @ConfigurationProperties(prefix = "game.host")
 public class GameHostProperties {
-    private String publicAddress = "34.64.149.81";
-
-    private String internalAddress = "34.64.149.81";
+    private String address = "34.64.149.81";
+    private String internalAddress = "0.0.0.0";
 
     private int port = 7777;
 
-    public String getPublicAddress() {
-        return publicAddress;
+    public String getAddress() {
+        return address;
     }
 
-    public void setPublicAddress(String publicAddress) {
-        this.publicAddress = publicAddress;
-    }
-
-    public String getInternalAddress() {
-        return internalAddress;
-    }
-
-    public void setInternalAddress(String internalAddress) {
-        this.internalAddress = internalAddress;
+    public void setAddress(String address) {
+        this.address = address;
     }
 
     public int getPort() {
@@ -36,38 +27,22 @@ public class GameHostProperties {
         this.port = port;
     }
 
-    public String resolveAddress(String candidate) {
-        return resolvePublicAddress(candidate);
-    }
-
-    public String resolvePublicAddress(String candidate) {
-        String trimmed = candidate == null ? null : candidate.trim();
-        if (trimmed != null) {
-            if (trimmed.equals(publicAddress)) {
-                return publicAddress;
-            }
-            if (trimmed.equals(internalAddress)) {
-                return publicAddress;
-            }
-            if ("localhost".equalsIgnoreCase(trimmed) || "127.0.0.1".equals(trimmed) || "::1".equals(trimmed)) {
-                return publicAddress;
-            }
-        }
-        return publicAddress;
-    }
-
-    public String resolveInternalAddress(String candidate) {
-        String trimmed = candidate == null ? null : candidate.trim();
-        if (trimmed != null && !trimmed.isEmpty()) {
-            if ("localhost".equalsIgnoreCase(trimmed) || "127.0.0.1".equals(trimmed) || "::1".equals(trimmed)) {
-                return internalAddress;
-            }
-            if (trimmed.equals(publicAddress)) {
-                return internalAddress;
-            }
-            return trimmed;
-        }
+    public String getInternalAddress() {
         return internalAddress;
+    }
+
+    public void setInternalAddress(String internalAddress) {
+        this.internalAddress = internalAddress;
+    }
+
+    public String resolveAddress(String candidate) {
+        if (candidate != null) {
+            String trimmed = candidate.trim();
+            if (trimmed.equals(address)) {
+                return trimmed;
+            }
+        }
+        return address;
     }
 
     public int resolvePort(Integer candidate) {
@@ -75,5 +50,15 @@ public class GameHostProperties {
             return candidate;
         }
         return port;
+    }
+
+    public String resolveInternalAddress(String candidate) {
+        if (candidate != null) {
+            String trimmed = candidate.trim();
+            if (trimmed.equals(internalAddress)) {
+                return trimmed;
+            }
+        }
+        return internalAddress;
     }
 }

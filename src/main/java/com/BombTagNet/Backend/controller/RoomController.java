@@ -60,9 +60,6 @@ public class RoomController {
     public ResponseEntity<?> start(HttpServletRequest request, @PathVariable String roomId) {
         Room room = requireRoom(roomId);
         rooms.start(room, PlayerRequestUtils.requirePlayerId(request), MIN_PLAYERS);
-        if (request != null) {
-            rooms.updateHostEndpoint(room, RequestIpUtils.resolveRemoteAddress(request), null);
-        }
         return ResponseEntity.ok().body(java.util.Map.of(
                 "matchId", "m_" + System.currentTimeMillis(),
                 "map", "MainMap",

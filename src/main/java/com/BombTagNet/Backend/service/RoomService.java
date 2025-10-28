@@ -27,24 +27,12 @@ public class RoomService {
         String roomId = normalizeRoomKey(name);
         String canonicalKey = toCanonicalKey(roomId);
         Room r = new Room(roomId, hostId, roomId, Math.max(2, Math.min(4, maxPlayers)), password);
-        String publicAddress = hostProperties.resolvePublicAddress(hostAddress);
-        String internalAddress = hostProperties.resolveInternalAddress(hostAddress);
-        r.updateHostEndpoint(publicAddress, internalAddress, hostProperties.getPort());
+        r.updateHostEndpoint(hostProperties.resolveAddress(hostAddress), null, 0);
         Room existing = rooms.putIfAbsent(canonicalKey, r);
         if (existing != null) {
             throw new IllegalStateException("ROOM_ALREADY_EXISTS");
         }
         return r;
-    }
-
-    public void updateHostEndpoint(Room room, String address, Integer port) {
-        if (room == null) {
-            return;
-        }
-        String resolvedPublic = hostProperties.resolvePublicAddress(address);
-        String resolvedInternal = hostProperties.resolveInternalAddress(address);
-        int resolvedPort = hostProperties.resolvePort(port);
-        room.updateHostEndpoint(resolvedPublic, resolvedInternal, resolvedPort);
     }
 
     private String normalizeRoomKey(String name) {
@@ -130,5 +118,25 @@ public class RoomService {
         if (!Objects.equals(r.hostId(), requesterId)) throw new IllegalStateException("ONLY_HOST");
         if (r.size() < minPlayersNeeded) throw new IllegalStateException("NOT_ENOUGH_PLAYERS");
         r.setStatus(RoomStatus.STARTED);
+        promoteDedicatedEndpoint(r);
+    }
+
+    private void promoteDedicatedEndpoint(Room room) {
+        if (room == null) {
+            return;
+        }
+
+        String externalAddress = normalizeAddress(hostProperties.getAddress());
+        String internalAddress = normalizeAddress(hostProperties.getInternalAddress());
+        room.updateHostEndpoint(externalAddress, internalAddress, hostProperties.getPort());
+    }
+
+    private String normalizeAddress(String address) {
+        if (address == null) {
+            return null;
+        }
+
+        String trimmed = address.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 }
