@@ -39,26 +39,28 @@ public class Room {
         return hostAddress;
     }
 
-    public String hostInternalAddress() {
-        return hostInternalAddress;
-    }
-
     public int hostPort() {
         return hostPort;
     }
 
-    public void updateHostEndpoint(String address, String internalAddress, int port) {
-        if (address != null && !address.isBlank()) {
-            this.hostAddress = address;
+    public String hostInternalAddress() {
+        return hostInternalAddress;
+    }
+
+    public void updateHostEndpoint(String publicAddress, String internalAddress, int port) {
+        if (publicAddress != null && !publicAddress.isBlank()) {
+            this.hostAddress = publicAddress;
         }
         if (internalAddress != null && !internalAddress.isBlank()) {
             this.hostInternalAddress = internalAddress;
-        } else if (this.hostInternalAddress == null || this.hostInternalAddress.isBlank()) {
-            this.hostInternalAddress = this.hostAddress;
         }
         if (port > 0) {
             this.hostPort = port;
         }
+    }
+
+    public void updateHostEndpoint(String publicAddress, int port) {
+        updateHostEndpoint(publicAddress, null, port);
     }
 
     public String name() {

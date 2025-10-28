@@ -2,7 +2,6 @@ package com.BombTagNet.Backend.controller;
 
 import com.BombTagNet.Backend.common.PlayerRequestUtils;
 import com.BombTagNet.Backend.common.RequestIpUtils;
-import com.BombTagNet.Backend.config.GameHostProperties;
 import com.BombTagNet.Backend.dao.Player;
 import com.BombTagNet.Backend.dao.Room;
 import com.BombTagNet.Backend.dto.RoomDto.*;
@@ -19,21 +18,18 @@ public class RoomController {
     private static final int MIN_PLAYERS = 2;
 
     private final RoomService rooms;
-    private final GameHostProperties hostProperties;
 
-    public RoomController(RoomService rooms, GameHostProperties hostProperties) {
+    public RoomController(RoomService rooms) {
         this.rooms = rooms;
-        this.hostProperties = hostProperties;
     }
 
     @PostMapping
     public ResponseEntity<RoomSummary> create(HttpServletRequest request, @RequestBody CreateRoomReq req) {
         String playerId = PlayerRequestUtils.requirePlayerId(request);
-        String requesterAddress = RequestIpUtils.resolveRemoteAddress(request);
-        Room room = rooms.create(playerId, req.name(), req.maxPlayers() == null ? 4 : req.maxPlayers(), req.password(), requesterAddress);
+        Room room = rooms.create(playerId, req.name(), req.maxPlayers() == null ? 4 : req.maxPlayers(), req.password(), RequestIpUtils.resolveRemoteAddress(request));
         Player host = new Player(playerId, PlayerRequestUtils.resolveNickname(request));
         room.add(host);
-        return ResponseEntity.ok(toSummary(room, requesterAddress));
+        return ResponseEntity.ok(toSummary(room));
     }
 
     @PostMapping("/{roomId}/join")
@@ -57,26 +53,23 @@ public class RoomController {
     @GetMapping("/{roomId}")
     public ResponseEntity<RoomDetail> get(HttpServletRequest request, @PathVariable String roomId) {
         PlayerRequestUtils.requirePlayerId(request);
-        String requesterAddress = RequestIpUtils.resolveRemoteAddress(request);
-        return ResponseEntity.ok(toDetail(requireRoom(roomId), requesterAddress));
+        return ResponseEntity.ok(toDetail(requireRoom(roomId)));
     }
 
     @PostMapping("/{roomId}/start")
     public ResponseEntity<?> start(HttpServletRequest request, @PathVariable String roomId) {
         Room room = requireRoom(roomId);
         rooms.start(room, PlayerRequestUtils.requirePlayerId(request), MIN_PLAYERS);
-        String requesterAddress = RequestIpUtils.resolveRemoteAddress(request);
         if (request != null) {
-            rooms.updateHostEndpoint(room, requesterAddress, null);
+            rooms.updateHostEndpoint(room, RequestIpUtils.resolveRemoteAddress(request), null);
         }
-        GameHostProperties.AddressSelection selection = hostProperties.selectForClient(room.hostAddress(), room.hostInternalAddress(), requesterAddress);
         return ResponseEntity.ok().body(java.util.Map.of(
                 "matchId", "m_" + System.currentTimeMillis(),
                 "map", "MainMap",
                 "seed", 123456,
                 "hostPlayerId", room.hostId(),
-                "hostAddress", selection.preferredAddress(),
-                "hostInternalAddress", selection.internalAddress(),
+                "hostAddress", room.hostAddress(),
+                "hostInternalAddress", room.hostInternalAddress(),
                 "hostPort", room.hostPort()
         ));
     }
@@ -89,17 +82,15 @@ public class RoomController {
         return List.copyOf(room.players());
     }
 
-    private RoomSummary toSummary(Room room, String requesterAddress) {
+    private RoomSummary toSummary(Room room) {
         List<Player> players = snapshotPlayers(room);
-        GameHostProperties.AddressSelection selection = hostProperties.selectForClient(room.hostAddress(), room.hostInternalAddress(), requesterAddress);
         return new RoomSummary(room.roomId(), room.name(), room.hostId(), room.status(), MIN_PLAYERS, room.maxPlayers(),
-                room.size(), players, selection.preferredAddress(), selection.internalAddress(), room.hostPort());
+                room.size(), players, room.hostAddress(), room.hostInternalAddress(), room.hostPort());
     }
 
-    private RoomDetail toDetail(Room room, String requesterAddress) {
+    private RoomDetail toDetail(Room room) {
         List<Player> players = snapshotPlayers(room);
-        GameHostProperties.AddressSelection selection = hostProperties.selectForClient(room.hostAddress(), room.hostInternalAddress(), requesterAddress);
         return new RoomDetail(room.roomId(), room.name(), room.status(), MIN_PLAYERS, room.maxPlayers(), room.size(),
-                players, room.hostId(), selection.preferredAddress(), selection.internalAddress(), room.hostPort());
+                players, room.hostId(), room.hostAddress(), room.hostInternalAddress(), room.hostPort());
     }
 }
