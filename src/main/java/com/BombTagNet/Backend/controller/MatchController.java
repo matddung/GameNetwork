@@ -33,8 +33,12 @@ public class MatchController {
                 status.players(),
                 status.hostPlayerId(),
                 status.hostAddress(),
+                status.hostPort(),
                 status.hostInternalAddress(),
-                status.hostPort()
+                status.queryPort(),
+                status.dedicatedServerId(),
+                status.startToken(),
+                status.startTokenExpiresAt() == null ? null : status.startTokenExpiresAt().toString()
         );
     }
 
