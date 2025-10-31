@@ -8,15 +8,21 @@ import com.BombTagNet.Backend.dto.RoomDto.*;
 import com.BombTagNet.Backend.service.RoomService;
 import com.BombTagNet.Backend.service.RoomService.MatchLaunch;
 import jakarta.servlet.http.HttpServletRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+import static com.BombTagNet.Backend.common.PlayerRequestUtils.mask;
+import static com.BombTagNet.Backend.common.PlayerRequestUtils.preview;
+
 @RestController
 @RequestMapping("/api/rooms")
 public class RoomController {
     private static final int MIN_PLAYERS = 2;
+    private static final Logger log = LoggerFactory.getLogger(RoomController.class);
 
     private final RoomService rooms;
 
@@ -60,8 +66,13 @@ public class RoomController {
     @PostMapping("/{roomId}/start")
     public ResponseEntity<StartRoomRes> start(HttpServletRequest request, @PathVariable String roomId) {
         Room room = requireRoom(roomId);
-        MatchLaunch launch = rooms.start(room, PlayerRequestUtils.requirePlayerId(request), MIN_PLAYERS);
-        return ResponseEntity.ok(new StartRoomRes(
+        String playerId = PlayerRequestUtils.requirePlayerId(request);
+        String nickname = PlayerRequestUtils.resolveNickname(request);
+        String remoteAddr = RequestIpUtils.resolveRemoteAddress(request);
+        log.info("[Match][HTTP][Recv] POST /api/rooms/{}/start player={} nick={} ip={}", roomId, mask(playerId), mask(nickname), remoteAddr);
+
+        MatchLaunch launch = rooms.start(room, playerId, MIN_PLAYERS);
+        StartRoomRes response = new StartRoomRes(
                 launch.matchId(),
                 launch.hostPlayerId(),
                 launch.server().publicAddress(),
@@ -71,7 +82,19 @@ public class RoomController {
                 launch.server().dsId(),
                 launch.startToken(),
                 launch.expiresAt() == null ? null : launch.expiresAt().toString()
-        ));
+        );
+
+        log.info("[Match][HTTP][Resp] POST /api/rooms/{}/start match={} host={}:{} ds={} tokenLen={} tokenPrefix={} exp={}",
+                roomId,
+                launch.matchId(),
+                launch.server().publicAddress(),
+                launch.server().gamePort(),
+                mask(launch.server().dsId()),
+                launch.startToken() == null ? 0 : launch.startToken().length(),
+                preview(launch.startToken(), 8),
+                launch.expiresAt());
+
+        return ResponseEntity.ok(response);
     }
 
     private Room requireRoom(String roomId) {

@@ -27,4 +27,22 @@ public final class PlayerRequestUtils {
         }
         return nickname.trim();
     }
+
+    public static String mask(String value) {
+        if (value == null || value.isBlank()) {
+            return "<empty>";
+        }
+        int len = value.length();
+        int visible = Math.min(4, len);
+        return value.substring(0, visible) + "*** (len=" + len + ")";
+    }
+
+    public static String preview(String value, int visible) {
+        if (value == null || value.isBlank()) {
+            return "<empty>";
+        }
+        int len = value.length();
+        int clip = Math.min(visible, len);
+        return value.substring(0, clip);
+    }
 }
