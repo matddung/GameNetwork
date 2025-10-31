@@ -3,6 +3,7 @@ server:
   tomcat:
     accesslog:
       enabled: true
+  forward-headers-strategy: framework
 
 spring:
   jackson:
