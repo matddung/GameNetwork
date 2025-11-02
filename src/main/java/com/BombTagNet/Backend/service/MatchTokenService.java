@@ -3,8 +3,6 @@ package com.BombTagNet.Backend.service;
 import com.BombTagNet.Backend.config.MatchProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
@@ -16,13 +14,8 @@ import java.util.Base64;
 import java.util.HexFormat;
 import java.util.Optional;
 
-import static com.BombTagNet.Backend.common.PlayerRequestUtils.mask;
-import static com.BombTagNet.Backend.common.PlayerRequestUtils.preview;
-
 @Service
 public class MatchTokenService {
-    private static final Logger log = LoggerFactory.getLogger(MatchTokenService.class);
-
     public record TokenPayload(String version, String dsId, String roomId, String matchId, Instant expiresAt) {
     }
 
@@ -44,20 +37,16 @@ public class MatchTokenService {
         Instant expiresAt = Instant.now().plus(ttl);
         String token = encode(dsId, roomId, matchId, expiresAt);
         TokenPayload payload = new TokenPayload(VERSION, dsId, roomId, matchId, expiresAt);
-        log.info("[Match][Token] Encoded token ds={} room={} match={} exp={} len={}",
-                mask(dsId), mask(roomId), mask(matchId), expiresAt, token.length());
         return new IssuedToken(token, payload);
     }
 
     public Optional<TokenPayload> verify(String token) {
         if (token == null || token.isBlank()) {
-            log.warn("[Match][Token] Verify failed: empty token");
             return Optional.empty();
         }
 
         String[] segments = token.split("\\.");
         if (segments.length != 3) {
-            log.warn("[Match][Token] Verify failed: invalid segment count={} tokenPrefix={}", segments.length, preview(token, 12));
             return Optional.empty();
         }
 
@@ -66,13 +55,11 @@ public class MatchTokenService {
         String signature = segments[2];
 
         if (!VERSION.equalsIgnoreCase(header)) {
-            log.warn("[Match][Token] Verify failed: version mismatch header={}", header);
             return Optional.empty();
         }
 
         String expectedSignature = sign(header + "." + payloadBase64);
         if (!expectedSignature.equalsIgnoreCase(signature)) {
-            log.warn("[Match][Token] Verify failed: signature mismatch expected={} actual={} tokenPrefix={}", preview(expectedSignature, 8), preview(signature, 8), preview(token, 12));
             return Optional.empty();
         }
 
@@ -80,7 +67,6 @@ public class MatchTokenService {
         try {
             payloadBytes = Base64.getDecoder().decode(payloadBase64);
         } catch (IllegalArgumentException ex) {
-            log.warn("[Match][Token] Verify failed: base64 decode error tokenPrefix={}", preview(payloadBase64, 12));
             return Optional.empty();
         }
 
@@ -91,16 +77,12 @@ public class MatchTokenService {
             String matchId = optText(node, "matchId");
             String exp = optText(node, "exp");
             if (dsId == null || roomId == null || matchId == null || exp == null) {
-                log.warn("[Match][Token] Verify failed: missing fields ds={} room={} match={} exp={} tokenPrefix={}",
-                        mask(dsId), mask(roomId), mask(matchId), exp, preview(token, 12));
                 return Optional.empty();
             }
 
             Instant expiresAt = Instant.parse(exp);
-            log.info("[Match][Token] Verify success ds={} room={} match={} exp={}", mask(dsId), mask(roomId), mask(matchId), expiresAt);
             return Optional.of(new TokenPayload(header, dsId, roomId, matchId, expiresAt));
         } catch (Exception ex) {
-            log.warn("[Match][Token] Verify failed: exception={} tokenPrefix={}", ex.getClass().getSimpleName(), preview(token, 12));
             return Optional.empty();
         }
     }

@@ -1,10 +1,8 @@
 package com.BombTagNet.Backend.service;
 
+import com.BombTagNet.Backend.service.DedicatedServerRegistry.*;
 import com.BombTagNet.Backend.dao.Player;
-import com.BombTagNet.Backend.service.DedicatedServerRegistry.DedicatedServerRecord;
 import jakarta.annotation.PreDestroy;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -15,13 +13,8 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static com.BombTagNet.Backend.common.PlayerRequestUtils.mask;
-import static com.BombTagNet.Backend.common.PlayerRequestUtils.preview;
-
 @Service
 public class MatchService {
-    private static final Logger log = LoggerFactory.getLogger(MatchService.class);
-
     public enum TicketStatus {
         QUEUED,
         FORMING,
@@ -241,13 +234,6 @@ public class MatchService {
         String hostPlayerId = hostTicket == null ? null : hostTicket.player.playerId();
 
         MatchTokenService.IssuedToken token = tokens.issueToken(server.dsId(), match.matchId, match.matchId);
-
-        log.info("[Match][Token] Issued start token match={} ds={} tokenLen={} prefix={} players={}",
-                match.matchId,
-                mask(server.dsId()),
-                token.token().length(),
-                preview(token.token(), 8),
-                players.size());
 
         MatchInfo info = new MatchInfo(
                 match.matchId,

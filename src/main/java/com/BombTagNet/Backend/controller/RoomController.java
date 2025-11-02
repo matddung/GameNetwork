@@ -15,14 +15,11 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-import static com.BombTagNet.Backend.common.PlayerRequestUtils.mask;
-import static com.BombTagNet.Backend.common.PlayerRequestUtils.preview;
-
 @RestController
 @RequestMapping("/api/rooms")
 public class RoomController {
-    private static final int MIN_PLAYERS = 2;
     private static final Logger log = LoggerFactory.getLogger(RoomController.class);
+    private static final int MIN_PLAYERS = 2;
 
     private final RoomService rooms;
 
@@ -66,12 +63,7 @@ public class RoomController {
     @PostMapping("/{roomId}/start")
     public ResponseEntity<StartRoomRes> start(HttpServletRequest request, @PathVariable String roomId) {
         Room room = requireRoom(roomId);
-        String playerId = PlayerRequestUtils.requirePlayerId(request);
-        String nickname = PlayerRequestUtils.resolveNickname(request);
-        String remoteAddr = RequestIpUtils.resolveRemoteAddress(request);
-        log.info("[Match][HTTP][Recv] POST /api/rooms/{}/start player={} nick={} ip={}", roomId, mask(playerId), mask(nickname), remoteAddr);
-
-        MatchLaunch launch = rooms.start(room, playerId, MIN_PLAYERS);
+        MatchLaunch launch = rooms.start(room, PlayerRequestUtils.requirePlayerId(request), MIN_PLAYERS);
         StartRoomRes response = new StartRoomRes(
                 launch.matchId(),
                 launch.hostPlayerId(),
@@ -84,15 +76,18 @@ public class RoomController {
                 launch.expiresAt() == null ? null : launch.expiresAt().toString()
         );
 
-        log.info("[Match][HTTP][Resp] POST /api/rooms/{}/start match={} host={}:{} ds={} tokenLen={} tokenPrefix={} exp={}",
-                roomId,
-                launch.matchId(),
-                launch.server().publicAddress(),
-                launch.server().gamePort(),
-                mask(launch.server().dsId()),
-                launch.startToken() == null ? 0 : launch.startToken().length(),
-                preview(launch.startToken(), 8),
-                launch.expiresAt());
+        log.info("Issuing StartRoomRes roomId={} matchId={} hostPlayerId={} hostAddress={} hostPort={} hostInternalAddress={} " +
+                        "queryPort={} dedicatedServerId={} startToken={} startTokenExpiresAt={}",
+                room.roomId(),
+                response.matchId(),
+                response.hostPlayerId(),
+                response.hostAddress(),
+                response.hostPort(),
+                response.hostInternalAddress(),
+                response.queryPort(),
+                response.dedicatedServerId(),
+                response.startToken(),
+                response.startTokenExpiresAt());
 
         return ResponseEntity.ok(response);
     }
