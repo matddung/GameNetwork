@@ -3,7 +3,7 @@ server:
   tomcat:
     accesslog:
       enabled: true
-      pattern: %h %l %u %t "%r" %s %b
+      pattern: "%h %l %u %t \"%r\" %s %b"
     basedir: .
   forward-headers-strategy: framework
 
