@@ -8,15 +8,12 @@ import com.BombTagNet.Backend.dto.MatchDto.OkRes;
 import com.BombTagNet.Backend.service.MatchService;
 import com.BombTagNet.Backend.service.MatchService.MatchQueueStatus;
 import jakarta.servlet.http.HttpServletRequest;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/matches")
 public class MatchController {
-    private static final Logger log = LoggerFactory.getLogger(MatchController.class);
     private final MatchService match;
 
     public MatchController(MatchService match) {
@@ -24,7 +21,7 @@ public class MatchController {
     }
 
     private MatchQueueStatusRes toResponse(MatchQueueStatus status) {
-        MatchQueueStatusRes response = new MatchQueueStatusRes(
+        return new MatchQueueStatusRes(
                 status.ticketId(),
                 status.status().name(),
                 status.position(),
@@ -43,24 +40,6 @@ public class MatchController {
                 status.startToken(),
                 status.startTokenExpiresAt() == null ? null : status.startTokenExpiresAt().toString()
         );
-
-        if (response.startToken() != null && !response.startToken().isBlank()) {
-            log.info("Issuing MatchQueueStatus ticketId={} status={} matchId={} hostPlayerId={} hostAddress={} hostPort={} " +
-                            "hostInternalAddress={} queryPort={} dedicatedServerId={} startToken={} startTokenExpiresAt={}",
-                    response.ticketId(),
-                    response.status(),
-                    response.matchId(),
-                    response.hostPlayerId(),
-                    response.hostAddress(),
-                    response.hostPort(),
-                    response.hostInternalAddress(),
-                    response.queryPort(),
-                    response.dedicatedServerId(),
-                    response.startToken(),
-                    response.startTokenExpiresAt());
-        }
-
-        return response;
     }
 
     @PostMapping("/queue")
