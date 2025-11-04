@@ -49,6 +49,7 @@ public class DedicatedServerController {
                 .orElseThrow(() -> new IllegalStateException("DEDICATED_SERVER_NOT_FOUND"));
         return ResponseEntity.ok(toResponse(record));
     }
+
     @PostMapping("/matches/verify-start")
     public ResponseEntity<VerifyStartTokenRes> verifyStart(@RequestBody VerifyStartTokenReq req) {
         if (req.startToken() == null || req.startToken().isBlank()) {
