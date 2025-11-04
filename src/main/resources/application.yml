@@ -9,8 +9,8 @@ server:
 
 logging:
   level:
-    org.apache.coyote.http11: INFO
-    org.apache.tomcat.util.net: INFO
+    org.apache.coyote.http11: DEBUG
+    org.apache.tomcat.util.net: DEBUG
 
 spring:
   jackson:
