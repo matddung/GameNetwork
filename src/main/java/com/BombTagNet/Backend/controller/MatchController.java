@@ -34,27 +34,21 @@ public class MatchController {
                 status.maxPlayers(),
                 status.matchId(),
                 status.players(),
-                status.hostPlayerId(),
-                status.hostAddress(),
-                status.hostPort(),
-                status.hostInternalAddress(),
-                status.queryPort(),
                 status.dedicatedServerId(),
+                status.dedicatedServerAddress(),
+                status.dedicatedServerPort(),
                 status.startToken(),
                 status.startTokenExpiresAt() == null ? null : status.startTokenExpiresAt().toString()
         );
 
         if (response.startToken() != null && !response.startToken().isBlank()) {
-            log.info("Issuing MatchQueueStatus ticketId={} status={} matchId={} hostPlayerId={} hostAddress={} hostPort={} " +
-                            "hostInternalAddress={} queryPort={} dedicatedServerId={} startToken={} startTokenExpiresAt={}",
+            log.info("Issuing MatchQueueStatus ticketId={} status={} matchId={} dedicatedServerAddress={} " +
+                            "dedicatedServerPort={} dedicatedServerId={} startToken={} startTokenExpiresAt={}",
                     response.ticketId(),
                     response.status(),
                     response.matchId(),
-                    response.hostPlayerId(),
-                    response.hostAddress(),
-                    response.hostPort(),
-                    response.hostInternalAddress(),
-                    response.queryPort(),
+                    response.dedicatedServerAddress(),
+                    response.dedicatedServerPort(),
                     response.dedicatedServerId(),
                     response.startToken(),
                     response.startTokenExpiresAt());
